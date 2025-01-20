@@ -8,29 +8,29 @@
     "displayName": "Deploy Web sites BytesSent Alert",
     "description": "Policy to Audit/Deploy Web sites BytesSent Alert",
     "metadata": {
-      "version": "1.0.0-preview",
+      "version": "2.0.0-preview",
       "category": "Web",
       "preview": true,
       "source": "https://github.com/Azure/azure-monitor-baseline-alerts/",
-      "alzCloudEnvironments": [
-        "AzureCloud"
-      ],
+      "alzCloudEnvironments": ["AzureCloud"],
       "_deployed_by_amba": "True"
     },
     "parameters": {
+      "metricName": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Metric Name",
+          "description": "Name of metric to alert on"
+        },
+        "defaultValue": "BytesSent"
+      },
       "severity": {
         "type": "String",
         "metadata": {
           "displayName": "Severity",
           "description": "Severity of the Alert"
         },
-        "allowedValues": [
-          "0",
-          "1",
-          "2",
-          "3",
-          "4"
-        ],
+        "allowedValues": ["0", "1", "2", "3", "4"],
         "defaultValue": "3"
       },
       "windowSize": {
@@ -57,13 +57,7 @@
           "displayName": "Evaluation Frequency",
           "description": "Evaluation frequency for the alert"
         },
-        "allowedValues": [
-          "PT1M",
-          "PT5M",
-          "PT15M",
-          "PT30M",
-          "PT1H"
-        ],
+        "allowedValues": ["PT1M", "PT5M", "PT15M", "PT30M", "PT1H"],
         "defaultValue": "PT1M"
       },
       "alertSensitivity": {
@@ -72,11 +66,7 @@
           "displayName": "Alert Sensitivity",
           "description": "Alert Sensitivity for the alert"
         },
-        "allowedValues": [
-          "Low",
-          "Medium",
-          "High"
-        ],
+        "allowedValues": ["Low", "Medium", "High"],
         "defaultValue": "Low"
       },
       "autoMitigate": {
@@ -85,10 +75,7 @@
           "displayName": "Auto Mitigate",
           "description": "Auto Mitigate for the alert"
         },
-        "allowedValues": [
-          "true",
-          "false"
-        ],
+        "allowedValues": ["true", "false"],
         "defaultValue": "true"
       },
       "enabled": {
@@ -97,11 +84,58 @@
           "displayName": "Alert State",
           "description": "Alert state for the alert"
         },
-        "allowedValues": [
-          "true",
-          "false"
-        ],
+        "allowedValues": ["true", "false"],
         "defaultValue": "true"
+      },
+      "timeAggregation": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Time Aggregation",
+          "description": "Time aggregation for metric"
+        },
+        "allowedValues": ["Average", "Count", "Maximum", "Minimum", "Total"],
+        "defaultValue": "Average"
+      },
+      "operator": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Operator",
+          "description": "Operator to use for metric threshold"
+        },
+        "allowedValues": ["GreaterOrLessThan", "GreaterThan", "LessThan"],
+        "defaultValue": "GreaterOrLessThan"
+      },
+      "minFailingPeriodsToAlert": {
+        "type": "integer",
+        "metadata": {
+          "displayName": "Minimum Failing Periods",
+          "description": "Number of minimum periods before alerting"
+        },
+        "defaultValue": 4
+      },
+      "numberOfEvaluationPeriods": {
+        "type": "integer",
+        "metadata": {
+          "displayName": "Number Evaluation Periods",
+          "description": "Number of evaluation periods before alerting"
+        },
+        "defaultValue": 4
+      },
+      "actionGroupId": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Action Group ID",
+          "description": "ID of action group to use for notification of metric alert. MI of policy needs read access to sub where AG is deployed"
+        },
+        "defaultValue": ""
+      },
+      "resourceType": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Resource Type",
+          "description": "Resource type"
+        },
+        "defaultValue": "Microsoft.Web/sites"
       },
       "effect": {
         "type": "String",
@@ -109,11 +143,16 @@
           "displayName": "Effect",
           "description": "Effect of the policy"
         },
-        "allowedValues": [
-          "deployIfNotExists",
-          "disabled"
-        ],
+        "allowedValues": ["deployIfNotExists", "disabled"],
         "defaultValue": "deployIfNotExists"
+      },
+      "evaluationDelay": {
+        "type": "string",
+        "metadata": {
+          "displayName": "Evaluation Delay",
+          "description": "Specifies when the existence of the related resources should be evaluated. The delay is only used for evaluations that are a result of a create or update resource request. Allowed values are AfterProvisioning, AfterProvisioningSuccess, AfterProvisioningFailure, or an ISO 8601 duration between 0 and 360 minutes."
+        },
+        "defaultValue": "PT30M"
       },
       "MonitorDisableTagName": {
         "type": "String",
@@ -129,12 +168,7 @@
           "displayName": "Monitoring disabled tag values(s)",
           "description": "Tag value(s) used to disable monitoring at the resource level. Set to true if monitoring should be disabled."
         },
-        "defaultValue": [
-          "true",
-          "Test",
-          "Dev",
-          "Sandbox"
-        ]
+        "defaultValue": ["true", "Test", "Dev", "Sandbox"]
       }
     },
     "policyRule": {
@@ -142,7 +176,7 @@
         "allOf": [
           {
             "field": "type",
-            "equals": "Microsoft.Web/sites"
+            "equals": "[parameters('resourceType')]"
           },
           {
             "field": "[[concat('tags[', parameters('MonitorDisableTagName'), ']')]",
@@ -151,65 +185,67 @@
         ]
       },
       "then": {
-        "effect": "[[parameters('effect')]",
+        "effect": "[parameters('effect')]",
         "details": {
           "roleDefinitionIds": [
             "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
           ],
           "type": "Microsoft.Insights/metricAlerts",
+          "name": "[concat(field('name'), '-', parameters('metricName'))]",
+          "evaluationDelay": "[parameters('evaluationDelay')]",
           "existenceCondition": {
             "allOf": [
               {
-                "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria.allOf[*].metricNamespace",
-                "equals": "Microsoft.Web/sites"
+                "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft-Azure-Monitor-MultipleResourceMultipleMetricCriteria.allOf[*].metricNamespace",
+                "equals": "[parameters('resourceType')]"
               },
               {
-                "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria.allOf[*].metricName",
-                "equals": "BytesSent"
-              },
-              {
-                "field": "Microsoft.Insights/metricalerts/scopes[*]",
-                "equals": "[[concat(subscription().id, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Web/sites/', field('fullName'))]"
+                "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft-Azure-Monitor-MultipleResourceMultipleMetricCriteria.allOf[*].metricName",
+                "equals": "[parameters('metricName')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/enabled",
-                "equals": "[[parameters('enabled')]"
+                "equals": "[parameters('enabled')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/evaluationFrequency",
-                "equals": "[[parameters('evaluationFrequency')]"
+                "equals": "[parameters('evaluationFrequency')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/windowSize",
-                "equals": "[[parameters('windowSize')]"
+                "equals": "[parameters('windowSize')]"
               },
               {
-                "field": "Microsoft.Insights/metricalerts/severity",
-                "equals": "[[parameters('severity')]"
+                "field": "Microsoft.Insights/metricAlerts/severity",
+                "equals": "[parameters('severity')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/autoMitigate",
-                "equals": "[[parameters('autoMitigate')]"
+                "equals": "[parameters('autoMitigate')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft-Azure-Monitor-MultipleResourceMultipleMetricCriteria.allOf[*].timeAggregation",
-                "equals": "Average"
+                "equals": "[parameters('timeAggregation')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft-Azure-Monitor-MultipleResourceMultipleMetricCriteria.allOf[*].DynamicThresholdCriterion.operator",
-                "equals": "GreaterOrLessThan"
+                "equals": "[parameters('operator')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft-Azure-Monitor-MultipleResourceMultipleMetricCriteria.allOf[*].DynamicThresholdCriterion.alertSensitivity",
-                "equals": "[[parameters('alertSensitivity')]"
+                "equals": "[parameters('alertSensitivity')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft-Azure-Monitor-MultipleResourceMultipleMetricCriteria.allOf[*].DynamicThresholdCriterion.failingPeriods.minFailingPeriodsToAlert",
-                "equals": 4
+                "equals": "[parameters('minFailingPeriodsToAlert')]"
               },
               {
                 "field": "Microsoft.Insights/metricAlerts/criteria.Microsoft-Azure-Monitor-MultipleResourceMultipleMetricCriteria.allOf[*].DynamicThresholdCriterion.failingPeriods.numberOfEvaluationPeriods",
-                "equals": 4
+                "equals": "[parameters('numberOfEvaluationPeriods')]"
+              },
+              {
+                "field": "Microsoft.Insights/metricAlerts/scopes[*]",
+                "equals": "[field('id')]"
               }
             ]
           },
@@ -243,13 +279,34 @@
                   "evaluationFrequency": {
                     "type": "String"
                   },
-                  "alertSensitivity": {
-                    "type": "String"
-                  },
                   "autoMitigate": {
                     "type": "String"
                   },
                   "enabled": {
+                    "type": "String"
+                  },
+                  "alertSensitivity": {
+                    "type": "String"
+                  },
+                  "metricName": {
+                    "type": "String"
+                  },
+                  "resourceType": {
+                    "type": "String"
+                  },
+                  "timeAggregation": {
+                    "type": "String"
+                  },
+                  "operator": {
+                    "type": "String"
+                  },
+                  "numberOfEvaluationPeriods": {
+                    "type": "int"
+                  },
+                  "minFailingPeriodsToAlert": {
+                    "type": "int"
+                  },
+                  "actionGroupId": {
                     "type": "String"
                   }
                 },
@@ -258,57 +315,83 @@
                   {
                     "type": "Microsoft.Insights/metricAlerts",
                     "apiVersion": "2018-03-01",
-                    "name": "[[concat(parameters('resourceName'), '-BytesSent')]",
+                    "name": "[concat(parameters('resourceName'), '-', parameters('metricName'))]",
                     "location": "global",
-                    "tags": {
-                      "_deployed_by_amba": true
-                    },
+                    "tags": {},
                     "properties": {
-                      "description": "Metric Alert for Web sites BytesSent",
-                      "severity": "[[parameters('severity')]",
-                      "enabled": "[[parameters('enabled')]",
-                      "scopes": [
-                        "[[parameters('resourceId')]"
+                      "description": "[concat('Metric Alert for ', parameters('resourceType'), ' ', parameters('metricName'))]",
+                      "copy": [
+                        {
+                          "name": "actions",
+                          "count": "[if(equals(parameters('actionGroupId'),''),0,1)]",
+                          "input": {
+                            "actionGroupId": "[parameters('actionGroupId')]"
+                          }
+                        }
                       ],
-                      "evaluationFrequency": "[[parameters('evaluationFrequency')]",
-                      "windowSize": "[[parameters('windowSize')]",
+                      "severity": "[parameters('severity')]",
+                      "enabled": "[parameters('enabled')]",
+                      "scopes": ["[parameters('resourceId')]"],
+                      "evaluationFrequency": "[parameters('evaluationFrequency')]",
+                      "windowSize": "[parameters('windowSize')]",
                       "criteria": {
                         "allOf": [
                           {
-                            "name": "BytesSent",
-                            "metricNamespace": "Microsoft.Web/sites",
-                            "metricName": "BytesSent",
-                            "operator": "GreaterOrLessThan",
-                            "alertSensitivity": "[[parameters('alertSensitivity')]",
+                            "name": "[parameters('metricName')]",
+                            "metricNamespace": "[parameters('resourceType')]",
+                            "metricName": "[parameters('metricName')]",
+                            "operator": "[parameters('operator')]",
+                            "alertSensitivity": "[parameters('alertSensitivity')]",
                             "failingPeriods": {
-                              "minFailingPeriodsToAlert": 4,
-                              "numberOfEvaluationPeriods": 4
+                              "minFailingPeriodsToAlert": "[parameters('minFailingPeriodsToAlert')]",
+                              "numberOfEvaluationPeriods": "[parameters('numberOfEvaluationPeriods')]"
                             },
-                            "timeAggregation": "Average",
+                            "timeAggregation": "[parameters('timeAggregation')]",
                             "criterionType": "DynamicThresholdCriterion"
                           }
                         ],
                         "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria"
                       },
-                      "autoMitigate": "[[parameters('autoMitigate')]",
+                      "autoMitigate": "[parameters('autoMitigate')]",
                       "parameters": {
                         "severity": {
-                          "value": "[[parameters('severity')]"
+                          "value": "[parameters('severity')]"
                         },
                         "windowSize": {
-                          "value": "[[parameters('windowSize')]"
+                          "value": "[parameters('windowSize')]"
                         },
                         "evaluationFrequency": {
-                          "value": "[[parameters('evaluationFrequency')]"
+                          "value": "[parameters('evaluationFrequency')]"
                         },
                         "alertSensitivity": {
-                          "value": "[[parameters('alertSensitivity')]"
+                          "value": "[parameters('alertSensitivity')]"
                         },
                         "autoMitigate": {
-                          "value": "[[parameters('autoMitigate')]"
+                          "value": "[parameters('autoMitigate')]"
                         },
                         "enabled": {
-                          "value": "[[parameters('enabled')]"
+                          "value": "[parameters('enabled')]"
+                        },
+                        "metricName": {
+                          "value": "[parameters('metricName')]"
+                        },
+                        "resourceType": {
+                          "value": "[parameters('resourceType')]"
+                        },
+                        "timeAggregation": {
+                          "value": "[parameters('timeAggregation')]"
+                        },
+                        "operator": {
+                          "value": "[parameters('operator')]"
+                        },
+                        "minFailingPeriodsToAlert": {
+                          "value": "[parameters('minFailingPeriodsToAlert')]"
+                        },
+                        "numberOfEvaluationPeriods": {
+                          "value": "[parameters('numberOfEvaluationPeriods')]"
+                        },
+                        "actionGroupId": {
+                          "value": "[parameters('actionGroupId')]"
                         }
                       }
                     }
@@ -317,28 +400,49 @@
               },
               "parameters": {
                 "resourceName": {
-                  "value": "[[field('name')]"
+                  "value": "[field('name')]"
                 },
                 "resourceId": {
-                  "value": "[[field('id')]"
+                  "value": "[field('id')]"
                 },
                 "severity": {
-                  "value": "[[parameters('severity')]"
+                  "value": "[parameters('severity')]"
                 },
                 "windowSize": {
-                  "value": "[[parameters('windowSize')]"
+                  "value": "[parameters('windowSize')]"
                 },
                 "evaluationFrequency": {
-                  "value": "[[parameters('evaluationFrequency')]"
-                },
-                "alertSensitivity": {
-                  "value": "[[parameters('alertSensitivity')]"
+                  "value": "[parameters('evaluationFrequency')]"
                 },
                 "autoMitigate": {
-                  "value": "[[parameters('autoMitigate')]"
+                  "value": "[parameters('autoMitigate')]"
                 },
                 "enabled": {
-                  "value": "[[parameters('enabled')]"
+                  "value": "[parameters('enabled')]"
+                },
+                "alertSensitivity": {
+                  "value": "[parameters('alertSensitivity')]"
+                },
+                "metricName": {
+                  "value": "[parameters('metricName')]"
+                },
+                "resourceType": {
+                  "value": "[parameters('resourceType')]"
+                },
+                "timeAggregation": {
+                  "value": "[parameters('timeAggregation')]"
+                },
+                "operator": {
+                  "value": "[parameters('operator')]"
+                },
+                "minFailingPeriodsToAlert": {
+                  "value": "[parameters('minFailingPeriodsToAlert')]"
+                },
+                "numberOfEvaluationPeriods": {
+                  "value": "[parameters('numberOfEvaluationPeriods')]"
+                },
+                "actionGroupId": {
+                  "value": "[parameters('actionGroupId')]"
                 }
               }
             }
